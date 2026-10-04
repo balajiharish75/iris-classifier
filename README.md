@@ -22,7 +22,7 @@ Classes: setosa, versicolor, virginica
 Example:
 
 ```
-curl -X POST https://iris-classifier.onrender.com/predict \
+curl -X POST https://iris-classifier-yd5h.onrender.com/predict \
   -H "Content-Type: application/json" \
   -d '{"features": [5.1, 3.5, 1.4, 0.2]}'
 ```
@@ -64,8 +64,8 @@ the service Logs tab.
 ## Links
 
 Repository: https://github.com/balajiharish75/iris-classifier
-Live API: https://iris-classifier.onrender.com
-Swagger: https://iris-classifier.onrender.com/docs
+Live API: https://iris-classifier-yd5h.onrender.com
+Swagger: https://iris-classifier-yd5h.onrender.com/docs
 
 The free Render instance sleeps when idle, so the first request after idle
 time takes 30-50 seconds to respond.
