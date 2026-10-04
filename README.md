@@ -37,10 +37,12 @@ uvicorn main:app --reload
 ```
 
 `train.py` trains the model and writes `model.pkl`. The API then runs at
-http://127.0.0.1:8000 — interactive docs at http://127.0.0.1:8000/docs.
+http://127.0.0.1:8000 — open that in a browser for the predictor page, or see
+the interactive docs at http://127.0.0.1:8000/docs.
 
 ## Endpoints
 
+- `GET /` — simple web page to make predictions from the browser
 - `GET /health` — `{"status": "ok", "model_loaded": true}`
 - `POST /predict` — takes `{"features": [float, float, float, float]}`, returns
   the predicted class

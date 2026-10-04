@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iris Classifier</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #fafafa;
+    color: #222;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 32px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: #666; font-size: 14px; margin-bottom: 24px; }
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: #444;
+    margin-bottom: 4px;
+  }
+
+  input {
+    width: 100%;
+    padding: 8px 10px;
+    margin-bottom: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+
+  input:focus { outline: none; border-color: #2d6a4f; }
+
+  button {
+    width: 100%;
+    padding: 10px;
+    background: #2d6a4f;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  button:hover { background: #245942; }
+  button:disabled { background: #999; cursor: default; }
+
+  #result {
+    display: none;
+    margin-top: 18px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f7f7f7;
+    font-size: 15px;
+  }
+
+  footer {
+    margin-top: 18px;
+    font-size: 12px;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Iris Classifier</h1>
+  <p class="sub">Enter the measurements in centimeters to predict the flower species.</p>
+
+  <label for="f0">Sepal length</label>
+  <input id="f0" type="number" step="0.1" value="5.1">
+
+  <label for="f1">Sepal width</label>
+  <input id="f1" type="number" step="0.1" value="3.5">
+
+  <label for="f2">Petal length</label>
+  <input id="f2" type="number" step="0.1" value="1.4">
+
+  <label for="f3">Petal width</label>
+  <input id="f3" type="number" step="0.1" value="0.2">
+
+  <button id="btn" type="button">Predict</button>
+
+  <div id="result"></div>
+
+  <footer>Random forest model (model.pkl) behind a FastAPI endpoint.</footer>
+</div>
+
+<script>
+  const btn = document.getElementById("btn");
+  const result = document.getElementById("result");
+
+  function show(text) {
+    result.style.display = "block";
+    result.textContent = text;
+  }
+
+  btn.addEventListener("click", async () => {
+    const features = ["f0", "f1", "f2", "f3"].map((id) =>
+      parseFloat(document.getElementById(id).value)
+    );
+
+    if (features.some(isNaN)) {
+      show("Please enter a number in every field.");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Predicting...";
+
+    try {
+      const res = await fetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ features: features }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        show("Prediction: " + data.class_name);
+      } else {
+        show("Error: " + (data.detail || "request failed"));
+      }
+    } catch (e) {
+      show("Could not reach the API.");
+    }
+
+    btn.disabled = false;
+    btn.textContent = "Predict";
+  });
+</script>
+
+</body>
+</html>
