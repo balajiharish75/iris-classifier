@@ -1,9 +1,3 @@
-"""Train an Iris classifier and export it as model.pkl.
-
-Usage:
-    python train.py
-"""
-
 import joblib
 from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier

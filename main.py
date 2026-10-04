@@ -1,14 +1,3 @@
-"""Iris Classifier API — serves a scikit-learn model with request logging.
-
-Run locally:
-    uvicorn main:app --reload
-
-Test it:
-    curl -X POST http://127.0.0.1:8000/predict \
-         -H "Content-Type: application/json" \
-         -d '{"features": [5.1, 3.5, 1.4, 0.2]}'
-"""
-
 import logging
 import os
 import time
@@ -28,17 +17,16 @@ logger = logging.getLogger("iris-classifier")
 
 app = FastAPI(
     title="Iris Classifier API",
-    description="Predicts iris flower species from sepal/petal measurements.",
+    description="Predicts iris flower species from sepal and petal measurements.",
     version="1.0.0",
 )
 
-# Load the model once at startup
 try:
     model = joblib.load(MODEL_PATH)
     logger.info("Model loaded from %s", MODEL_PATH)
 except FileNotFoundError:
     model = None
-    logger.error("Model file not found at %s — run `python train.py` first", MODEL_PATH)
+    logger.error("Model file not found: %s", MODEL_PATH)
 
 IRIS_CLASSES = ["setosa", "versicolor", "virginica"]
 
@@ -59,10 +47,6 @@ class PredictionResponse(BaseModel):
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """Log every request (method, path, status, duration, payload) to stdout.
-
-    Render captures stdout, so these lines appear in the service Logs tab.
-    """
     start = time.perf_counter()
     request_body = ""
     if request.method == "POST":
@@ -104,7 +88,6 @@ def root():
 
 @app.get("/health")
 def health():
-    """Basic health check endpoint — used by Render and load balancers."""
     return {"status": "ok", "model_loaded": model is not None}
 
 
@@ -113,7 +96,7 @@ def predict(request: PredictionRequest):
     if model is None:
         raise HTTPException(
             status_code=503,
-            detail="Model not loaded. Run `python train.py` to create model.pkl.",
+            detail="Model not loaded. Run train.py to create model.pkl.",
         )
 
     features = np.array(request.features).reshape(1, -1)
