@@ -1,35 +1,32 @@
 # Iris Classifier API
 
-Predicts iris flower species from sepal and petal measurements.
-Project for the Getting Started with ML in Production workshop.
+## What the model predicts
 
-## Model
+The species of an iris flower — setosa, versicolor, or virginica — from four
+measurements: sepal length, sepal width, petal length, petal width.
 
-Random Forest (200 trees) trained on the scikit-learn Iris dataset (150 rows,
-4 features), created by `train.py` and saved as `model.pkl` with joblib.
-Accuracy on the test split: 90%.
+The model is a scikit-learn Random Forest (200 trees) trained on the built-in
+Iris dataset (150 rows), exported to `model.pkl` with joblib. Accuracy on the
+held-out test split: 90%.
 
-Input features: sepal length, sepal width, petal length, petal width
-Classes: setosa, versicolor, virginica
+## Example request body for POST /predict
 
-## Endpoints
-
-- `GET /` - service info
-- `GET /health` - status and whether the model loaded
-- `POST /predict` - predict the class from 4 features
-- `GET /docs` - Swagger UI
-
-Example:
-
-```
-curl -X POST https://iris-classifier-yd5h.onrender.com/predict \
-  -H "Content-Type: application/json" \
-  -d '{"features": [5.1, 3.5, 1.4, 0.2]}'
+```json
+{
+  "features": [5.1, 3.5, 1.4, 0.2]
+}
 ```
 
-Response: `{"prediction": 0, "class_name": "setosa"}`
+Response:
 
-## Run locally
+```json
+{
+  "prediction": 0,
+  "class_name": "setosa"
+}
+```
+
+## Run it locally
 
 ```
 python3 -m venv venv
@@ -39,33 +36,16 @@ python train.py
 uvicorn main:app --reload
 ```
 
-## Docker
+`train.py` trains the model and writes `model.pkl`. The API then runs at
+http://127.0.0.1:8000 — interactive docs at http://127.0.0.1:8000/docs.
 
-```
-docker build -t iris-classifier .
-docker run -p 8000:8000 iris-classifier
-```
+## Endpoints
 
-## Render
-
-Configured with `render.yaml`:
-
-- Build command: `pip install -r requirements.txt`
-- Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-- Python version pinned in `.python-version` (the pinned numpy only has
-  wheels up to Python 3.12, so this matters)
-
-## Logs
-
-Every request is written to stdout: timestamp, method, path, status, duration
-and the request body, plus each prediction result. On Render these appear in
-the service Logs tab.
+- `GET /health` — `{"status": "ok", "model_loaded": true}`
+- `POST /predict` — takes `{"features": [float, float, float, float]}`, returns
+  the predicted class
 
 ## Links
 
-Repository: https://github.com/balajiharish75/iris-classifier
 Live API: https://iris-classifier-yd5h.onrender.com
-Swagger: https://iris-classifier-yd5h.onrender.com/docs
-
-The free Render instance sleeps when idle, so the first request after idle
-time takes 30-50 seconds to respond.
+Repository: https://github.com/balajiharish75/iris-classifier
