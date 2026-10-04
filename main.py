@@ -1,0 +1,125 @@
+"""Iris Classifier API — serves a scikit-learn model with request logging.
+
+Run locally:
+    uvicorn main:app --reload
+
+Test it:
+    curl -X POST http://127.0.0.1:8000/predict \
+         -H "Content-Type: application/json" \
+         -d '{"features": [5.1, 3.5, 1.4, 0.2]}'
+"""
+
+import logging
+import os
+import time
+
+from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel, Field
+import joblib
+import numpy as np
+
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.pkl")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+)
+logger = logging.getLogger("iris-classifier")
+
+app = FastAPI(
+    title="Iris Classifier API",
+    description="Predicts iris flower species from sepal/petal measurements.",
+    version="1.0.0",
+)
+
+# Load the model once at startup
+try:
+    model = joblib.load(MODEL_PATH)
+    logger.info("Model loaded from %s", MODEL_PATH)
+except FileNotFoundError:
+    model = None
+    logger.error("Model file not found at %s — run `python train.py` first", MODEL_PATH)
+
+IRIS_CLASSES = ["setosa", "versicolor", "virginica"]
+
+
+class PredictionRequest(BaseModel):
+    features: list[float] = Field(
+        ...,
+        min_length=4,
+        max_length=4,
+        description="Iris features: [sepal_length, sepal_width, petal_length, petal_width]",
+    )
+
+
+class PredictionResponse(BaseModel):
+    prediction: int
+    class_name: str
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log every request (method, path, status, duration, payload) to stdout.
+
+    Render captures stdout, so these lines appear in the service Logs tab.
+    """
+    start = time.perf_counter()
+    request_body = ""
+    if request.method == "POST":
+        try:
+            request_body = (await request.body()).decode("utf-8", errors="replace")
+        except Exception:
+            request_body = ""
+
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.exception(
+            "%s %s -> 500 | %.1f ms | body=%s",
+            request.method,
+            request.url.path,
+            duration_ms,
+            request_body[:200],
+        )
+        raise
+
+    duration_ms = (time.perf_counter() - start) * 1000
+    suffix = f" | body={request_body[:200]}" if request_body else ""
+    logger.info(
+        "%s %s -> %s | %.1f ms%s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+        suffix,
+    )
+    return response
+
+
+@app.get("/")
+def root():
+    return {"message": "Iris Classifier API is running. See /docs for usage."}
+
+
+@app.get("/health")
+def health():
+    """Basic health check endpoint — used by Render and load balancers."""
+    return {"status": "ok", "model_loaded": model is not None}
+
+
+@app.post("/predict", response_model=PredictionResponse)
+def predict(request: PredictionRequest):
+    if model is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Model not loaded. Run `python train.py` to create model.pkl.",
+        )
+
+    features = np.array(request.features).reshape(1, -1)
+    pred = int(model.predict(features)[0])
+    class_name = IRIS_CLASSES[pred]
+
+    logger.info("prediction=%d (%s) | features=%s", pred, class_name, request.features)
+
+    return PredictionResponse(prediction=pred, class_name=class_name)
